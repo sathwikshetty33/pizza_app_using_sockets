@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Order Details</h1>
+
+        <!-- Order Details Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">Order #{{ orders.id }}</h3>
+                <p><strong>Pizza:</strong> {{ orders.pizza.name }}</p>
+                <p><strong>Price per Item:</strong> ${{ orders.pizza.price }}</p>
+                <p><strong>Total Amount:</strong> ${{ orders.amount }}</p>
+            </div>
+        </div>
+
+        <!-- Delivery Status Section -->
+        <div class="mb-3">
+            <h4>Delivery Status: <span id="delivery-status">{{ orders.status }}</span></h4>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress mb-4" style="height: 25px;">
+            <div
+                id="progress-bar"
+                class="progress-bar progress-bar-striped progress-bar-animated"
+                role="progressbar"
+                style="width: 20%"
+                aria-valuenow="20"
+                aria-valuemin="0"
+                aria-valuemax="100">
+                20%
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const orderId = '{{ orders.order_id }}'; // Get the order ID dynamically
+
+        // Function to update the progress bar and status
+        function updateProgress(status, progress) {
+            const progressBar = document.querySelector('#progress-bar');
+            const statusElement = document.querySelector('#delivery-status');
+
+            if (status) {
+                statusElement.innerHTML = status; // Update delivery status
+            }
+
+            if (progress !== undefined && progress >= 0 && progress <= 100) {
+                progressBar.style.width = `${progress}%`; // Update progress bar width
+                progressBar.setAttribute('aria-valuenow', progress); // Update aria attribute
+                progressBar.innerHTML = `${progress}%`; // Update visible percentage
+            }
+        }
+
+        // Initialize WebSocket connection
+        const socket = new WebSocket(`ws://${window.location.host}/ws/pizza/${orderId}`);
+
+        // Handle WebSocket events
+        socket.onopen = function(event) {
+            console.log('WebSocket connection established:', event);
+        };
+
+        socket.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data); // Parse incoming data
+                if (data.payload) {
+                    updateProgress(data.payload.status, data.payload.progress);
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+            }
+        };
+
+        socket.onclose = function(event) {
+            console.warn('WebSocket connection closed:', event);
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>
